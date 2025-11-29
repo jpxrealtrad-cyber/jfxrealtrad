@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Trading Panel Upgrade</title>
+
+<style>
+body {
+    margin:0;font-family: Arial,sans-serif;
+    background-size: cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    transition:0.3s;
+}
+
+/* SIDEBAR */
+.sidebar {
+    width:220px;background:#171717;color:#fff;height:100vh;
+    position:fixed;padding-top:20px;
+}
+.sidebar h2 {text-align:center;margin:0;padding:10px;border-radius:6px;}
+.sidebar a {display:block;padding:12px 20px;color:#bbb;text-decoration:none;cursor:pointer;}
+.sidebar a:hover, .active {background:#222;color:#fff !important;}
+
+/* TOPBAR */
+.topbar {
+    margin-left:220px;height:60px;background: rgba(0,0,0,0.6);
+    display:flex;align-items:center;padding:0 20px;justify-content:flex-end;
+    color:#fff;backdrop-filter: blur(6px);gap:20px;
+}
+.profile-img {width:45px;height:45px;border-radius:50%;object-fit:cover;border:2px solid #fff;cursor:pointer;}
+.wib-clock {font-family:'Courier New', monospace;font-size:24px;color:#00ffea;text-shadow:0 0 5px #00ffea,0 0 10px #00d4c7;}
+
+/* CONTENT */
+.content {margin-left:220px;padding:20px;color:#fff;display:none;}
+.card {
+    background: rgba(0,0,0,0.6);padding:20px;border-radius:10px;margin-bottom:20px;
+    backdrop-filter: blur(5px);transition:0.3s;
+}
+.card:hover {transform: translateY(-2px);}
+
+#tradinglog .card input {width: 30%;display:inline-block;margin:6px 1% 6px 0;box-sizing:border-box;}
+#tradinglog .card input:last-child {margin-right:0;}
+
+#tradinglog .card button {
+    width:100%;margin-top:10px;background:#4a7afe;color:#fff;
+    border:none;border-radius:6px;padding:10px;cursor:pointer;transition:0.3s;
+}
+#tradinglog .card button:hover {background:#3563d6;}
+input, select, button {border-radius:6px;border:none;padding:10px;font-size:14px;}
+
+/* TABLE */
+table {width:100%;border-collapse:collapse;margin-top:15px;color:#fff;table-layout: fixed;}
+th, td {
+    padding:10px;border-bottom:1px solid #444;text-align:left;
+    width:33.33%;word-wrap: break-word;
+}
+.profit {color:#74ff81;}
+.loss {color:#ff6474;}
+.action-btn {margin-right:5px;padding:4px 8px;font-size:12px;cursor:pointer;border-radius:4px;border:none;}
+.edit-btn {background:#ffc107;color:#000;}
+.delete-btn {background:#ff4d4d;color:#fff;}
+
+/* PROGRESS */
+.progress-container {width: 100%; height: 18px; background: #333; border-radius: 20px; overflow: hidden; margin-top: 10px; border: 1px solid #555;}
+.progress-bar {height: 100%; width: 0%; transition: 0.6s; background: linear-gradient(90deg, #00ff95, #00c86a);}
+.profitText {color: #74ff81 !important;}
+.lossText {color: #ff6474 !important;}
+
+/* STATS */
+.chart-container {width:100%;height:250px;margin-top:20px;}
+.stat-box {display:flex;justify-content:space-between;padding:10px 0;}
+.stat-box div {
+    flex:1;text-align:center;background: rgba(255,255,255,0.1);
+    margin:0 5px;padding:10px;border-radius:6px;
+}
+.stat-box div b {display:block;font-size:16px;margin-bottom:4px;}
+
+/* TOOLS GRID */
+.tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+.tool-card {
+    background: rgba(255,255,255,0.08);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.3s;
+    backdrop-filter: blur(6px);
+}
+.tool-card:hover {
+    transform: translateY(-4px);
+    background: rgba(255,255,255,0.15);
+}
+.tool-icon {font-size: 36px;margin-bottom: 8px;}
+.tool-label {font-size: 15px;margin-top: 6px;}
+
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+<h2 id="sidebarHeader">𝐉𝐅𝐗_𝐑𝐄𝐀𝐋𝐓𝐑𝐀𝐃</h2>
+<a class="navlink active" data-target="dashboard">Dashboard</a>
+<a class="navlink" data-target="tradinglog">Trading Log</a>
+<a class="navlink" data-target="settings">Pengaturan</a>
+<a class="navlink" data-target="tools">Tools</a>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+<img src="" id="profileImg" class="profile-img" title="Foto Profil">
+<div id="wibClock" class="wib-clock">--:--:--</div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="content" style="display:block">
+<div class="card">
+<h2>Selamat Datang 👋</h2>
+<p>Panel performa trading kamu.</p>
+</div>
+
+<div class="card">
+<h3>📊 Ringkasan Akun</h3>
+<p><b>User ID:</b> <span id="dashUserId">-</span></p>
+<p><b>Mata Uang:</b> <span id="dashCurrency">-</span></p>
+<p><b>Modal Awal:</b> <span id="dashModal">0</span></p>
+<p><b>Total P/L:</b> <span id="dashTotalPL">0</span></p>
+<p><b>Persentase Profit/Loss:</b> <span id="dashPercent">0%</span></p>
+
+<div class="progress-container"><div id="progressBar" class="progress-bar"></div></div>
+
+<div class="stat-box">
+<div><b id="totalTrades">0</b>Total Trading</div>
+<div><b id="totalWin">0</b>Profit</div>
+<div><b id="totalLoss">0</b>Loss</div>
+<div><b id="winRate">0%</b>Win Rate</div>
+</div>
+
+<div class="chart-container"><canvas id="plChart"></canvas></div>
+</div>
+</div>
+
+<!-- TRADING LOG -->
+<div id="tradinglog" class="content">
+<div class="card">
+<h3>Catat Trading</h3>
+<input type="text" id="pair" placeholder="Pair/Asset">
+<input type="number" id="pl" placeholder="Profit/Loss">
+<input type="text" id="note" placeholder="Catatan (WIN/LOS)">
+<button onclick="addTrade()">Simpan</button>
+</div>
+
+<div class="card">
+<h3>Riwayat Trading</h3>
+<table>
+<thead><tr><th>Pair</th><th>P/L</th><th>Catatan</th><th>Aksi</th></tr></thead>
+<tbody id="tradeTable"></tbody>
+</table>
+</div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings" class="content">
+<div class="card">
+<h3>Ubah Foto Profil</h3>
+<input type="file" id="profileUpload" accept="image/*">
+</div>
+
+<div class="card">
+<h3>Ubah Tema / Background</h3>
+<input type="file" id="themeUpload" accept="image/*">
+</div>
+
+<div class="card">
+<h3>Pengaturan Akun</h3>
+<input type="text" id="userIdInput" placeholder="User ID">
+<select id="currencyInput">
+<option value="USD">USD</option>
+<option value="IDR">IDR</option>
+<option value="EUR">EUR</option>
+</select>
+<input type="number" id="modalInput" placeholder="Modal Awal">
+</div>
+
+<div class="card">
+<h3>Kustomisasi Sidebar Header</h3>
+<input type="text" id="headerTextInput" placeholder="Nama Header">
+<input type="text" id="headerFontInput" placeholder="Font-family (contoh: Arial)">
+<input type="color" id="headerColorInput" title="Warna Font">
+<input type="color" id="headerBgColorInput" title="Warna Latar Header">
+<button onclick="saveSettings()">Simpan Pengaturan</button>
+</div>
+</div>
+
+<!-- TOOLS (MODERN GRID) -->
+<div id="tools" class="content">
+<div class="card">
+<h3>TOOLS PANEL</h3>
+<p>Pilih fungsi di bawah:</p>
+
+<div class="tool-grid">
+
+<div class="tool-card" onclick="backupData()">
+    <div class="tool-icon">📦</div>
+    <div class="tool-label">Backup Data</div>
+</div>
+
+<div class="tool-card" onclick="restoreData()">
+    <div class="tool-icon">📂</div>
+    <div class="tool-label">Restore Data</div>
+</div>
+
+<div class="tool-card" onclick="exportExcel()">
+    <div class="tool-icon">📊</div>
+    <div class="tool-label">Export Excel</div>
+</div>
+
+<div class="tool-card" onclick="exportPDF()">
+    <div class="tool-icon">📄</div>
+    <div class="tool-label">Export PDF</div>
+</div>
+
+<div class="tool-card" onclick="toggleTheme()">
+    <div class="tool-icon">🌙</div>
+    <div class="tool-label">Dark / Light Mode</div>
+</div>
+
+<div class="tool-card" onclick="resetAllData()">
+    <div class="tool-icon">🗑️</div>
+    <div class="tool-label">Reset Semua Data</div>
+</div>
+
+</div>
+</div>
+</div>
+
+<script>
+
+/* NAVIGATION */
+const links=document.querySelectorAll(".navlink");
+const pages=document.querySelectorAll(".content");
+links.forEach(link=>{
+    link.onclick=()=>{
+        links.forEach(l=>l.classList.remove("active"));
+        link.classList.add("active");
+        pages.forEach(p=>p.style.display="none");
+        document.getElementById(link.dataset.target).style.display="block";
+    }
+});
+
+/* PROFILE */
+const profileImg=document.getElementById("profileImg");
+const profileUpload=document.getElementById("profileUpload");
+
+profileUpload.onchange=e=>{
+    const file=e.target.files[0];
+    const reader=new FileReader();
+    reader.onload=()=>{
+        profileImg.src=reader.result;
+        localStorage.setItem("profileImg",reader.result);
+    };
+    reader.readAsDataURL(file);
+};
+
+profileImg.src=localStorage.getItem("profileImg") || "https://via.placeholder.com/150";
+
+/* THEME */
+document.getElementById("themeUpload").onchange=e=>{
+    const file=e.target.files[0];
+    const reader=new FileReader();
+    reader.onload=()=>{
+        document.body.style.backgroundImage=`url('${reader.result}')`;
+        localStorage.setItem("bgImage",reader.result);
+    };
+    reader.readAsDataURL(file);
+};
+
+const savedBg=localStorage.getItem("bgImage");
+if(savedBg) document.body.style.backgroundImage=`url('${savedBg}')`;
+
+/* TRADING */
+let trades=JSON.parse(localStorage.getItem("trades")||"[]");
+let editIndex=null;
+const table=document.getElementById("tradeTable");
+
+function addTrade(){
+    const pair=document.getElementById("pair").value.trim();
+    let pl=parseFloat(document.getElementById("pl").value);
+    const note=document.getElementById("note").value.trim().toUpperCase();
+
+    if(!pair||isNaN(pl)) return alert("Isi data dengan benar");
+
+    if(note.includes("WIN") && pl<0) pl=Math.abs(pl);
+    if(note.includes("LOS") && pl>0) pl=-Math.abs(pl);
+
+    if(editIndex!==null){
+        trades[editIndex]={pair,pl,note};
+        editIndex=null;
+    } else {
+        trades.push({pair,pl,note});
+    }
+
+    localStorage.setItem("trades",JSON.stringify(trades));
+    renderTable();
+    updateDashboard();
+    renderChart();
+
+    document.getElementById("pair").value="";
+    document.getElementById("pl").value="";
+    document.getElementById("note").value="";
+}
+
+function renderTable(){
+    table.innerHTML="";
+    trades.forEach((t,i)=>{
+        table.innerHTML+=`
+        <tr>
+            <td>${t.pair}</td>
+            <td class="${t.pl>=0?'profit':'loss'}">${t.pl} ${getCurrency()}</td>
+            <td>${t.note}</td>
+            <td>
+                <button class="action-btn edit-btn" onclick="editTrade(${i})">Edit</button>
+                <button class="action-btn delete-btn" onclick="deleteTrade(${i})">Hapus</button>
+            </td>
+        </tr>`;
+    });
+}
+
+function editTrade(i){
+    const t=trades[i];
+    document.getElementById("pair").value=t.pair;
+    document.getElementById("pl").value=t.pl;
+    document.getElementById("note").value=t.note;
+    editIndex=i;
+}
+
+function deleteTrade(i){
+    if(confirm("Hapus trade ini?")){
+        trades.splice(i,1);
+        localStorage.setItem("trades",JSON.stringify(trades));
+        renderTable();
+        updateDashboard();
+        renderChart();
+    }
+}
+
+/* WIB CLOCK */
+const wibClock=document.getElementById("wibClock");
+
+function updateWIBClock(){
+    const now=new Date();
+    const utc=now.getTime()+now.getTimezoneOffset()*60000;
+    const wib=new Date(utc+7*60*60*1000);
+    const h=String(wib.getHours()).padStart(2,'0');
+    const m=String(wib.getMinutes()).padStart(2,'0');
+    const s=String(wib.getSeconds()).padStart(2,'0');
+    wibClock.textContent=`${h}:${m}:${s}`;
+}
+
+setInterval(updateWIBClock,1000);
+updateWIBClock();
+
+/* SETTINGS */
+const userIdInput=document.getElementById("userIdInput");
+const currencyInput=document.getElementById("currencyInput");
+const modalInput=document.getElementById("modalInput");
+const headerTextInput=document.getElementById("headerTextInput");
+const headerFontInput=document.getElementById("headerFontInput");
+const headerColorInput=document.getElementById("headerColorInput");
+const headerBgColorInput=document.getElementById("headerBgColorInput");
+
+const sidebarHeader=document.getElementById("sidebarHeader");
+
+const dashUserId=document.getElementById("dashUserId");
+const dashCurrency=document.getElementById("dashCurrency");
+const dashModal=document.getElementById("dashModal");
+const dashTotalPL=document.getElementById("dashTotalPL");
+const dashPercent=document.getElementById("dashPercent");
+const progressBar=document.getElementById("progressBar");
+const totalTrades=document.getElementById("totalTrades");
+const totalWin=document.getElementById("totalWin");
+const totalLoss=document.getElementById("totalLoss");
+const winRate=document.getElementById("winRate");
+
+function saveSettings(){
+    localStorage.setItem("userId",userIdInput.value||"-");
+    localStorage.setItem("currency",currencyInput.value);
+    localStorage.setItem("modal",parseFloat(modalInput.value)||0);
+    localStorage.setItem("headerText",headerTextInput.value||"𝐉𝐅𝐗_𝐑𝐄𝐀𝐋𝐓𝐑𝐀𝐃");
+    localStorage.setItem("headerFont",headerFontInput.value||"inherit");
+    localStorage.setItem("headerColor",headerColorInput.value||"#ffffff");
+    localStorage.setItem("headerBgColor",headerBgColorInput.value||"#171717");
+
+    updateDashboard();
+    updateHeader();
+    renderChart();
+
+    alert("Pengaturan tersimpan!");
+}
+
+function updateHeader(){
+    sidebarHeader.textContent=localStorage.getItem("headerText")||"𝐉𝐅𝐗_𝐑𝐄𝐀𝐋𝐓𝐑𝐀𝐃";
+    sidebarHeader.style.fontFamily=localStorage.getItem("headerFont")||"inherit";
+    sidebarHeader.style.color=localStorage.getItem("headerColor")||"#ffffff";
+    sidebarHeader.style.backgroundColor=localStorage.getItem("headerBgColor")||"#171717";
+}
+
+function getCurrency(){return localStorage.getItem("currency")||"USD";}
+
+function updateDashboard(){
+    const userId=localStorage.getItem("userId")||"-";
+    const currency=localStorage.getItem("currency")||"USD";
+    const modal=parseFloat(localStorage.getItem("modal")||0);
+
+    const totalPL=trades.reduce((acc,t)=>acc+t.pl,0);
+    const percent=modal>0?(totalPL/modal)*100:0;
+
+    dashUserId.textContent=userId;
+    dashCurrency.textContent=currency;
+    dashModal.textContent=modal+" "+currency;
+    dashTotalPL.textContent=totalPL+" "+currency;
+    dashPercent.textContent=percent.toFixed(2)+"%";
+
+    if(totalPL>=0){
+        dashTotalPL.className="profitText";
+        dashPercent.className="profitText";
+        progressBar.style.background="linear-gradient(90deg, #00ff95, #00c86a)";
+    } else {
+        dashTotalPL.className="lossText";
+        dashPercent.className="lossText";
+        progressBar.style.background="linear-gradient(90deg, #ff3b5c, #ff1e3c)";
+    }
+
+    let barPercent=Math.min(Math.max(percent+50,0),100);
+    progressBar.style.width=barPercent+"%";
+
+    const wins=trades.filter(t=>t.pl>0).length;
+    const losses=trades.filter(t=>t.pl<0).length;
+
+    totalTrades.textContent=trades.length;
+    totalWin.textContent=wins;
+    totalLoss.textContent=losses;
+    winRate.textContent=trades.length>0?((wins/trades.length)*100).toFixed(2)+"%":"0%";
+}
+
+/* CHART */
+let plChart;
+
+function renderChart(){
+    const ctx=document.getElementById("plChart").getContext("2d");
+
+    const labels=trades.map((t,i)=>i+1);
+    const data=trades.map(t=>t.pl);
+
+    if(plChart) plChart.destroy();
+
+    plChart=new Chart(ctx,{
+        type:'line',
+        data:{
+            labels:labels,
+            datasets:[{
+                label:'P/L',
+                data:data,
+                fill:false,
+                borderColor:'#4a7afe',
+                tension:0.3
+            }]
+        },
+        options:{
+            responsive:true,
+            plugins:{legend:{display:false}},
+            scales:{y:{beginAtZero:true}}
+        }
+    });
+}
+
+/* RESET DATA */
+function resetAllData(){
+    if(confirm("Yakin ingin mereset SEMUA data? Ini tidak bisa dikembalikan.")){
+        localStorage.clear();
+        alert("Semua data berhasil direset!");
+        location.reload();
+    }
+}
+
+/* TOOLS — BACKUP */
+function backupData(){
+    const backup = {
+        trades,
+        userId: localStorage.getItem("userId"),
+        currency: localStorage.getItem("currency"),
+        modal: localStorage.getItem("modal"),
+        headerText: localStorage.getItem("headerText"),
+        headerFont: localStorage.getItem("headerFont"),
+        headerColor: localStorage.getItem("headerColor"),
+        headerBgColor: localStorage.getItem("headerBgColor"),
+        profileImg: localStorage.getItem("profileImg"),
+        bgImage: localStorage.getItem("bgImage")
+    };
+
+    const blob = new Blob([JSON.stringify(backup)], {type:"application/json"});
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "backup_trading.json";
+    link.click();
+
+    alert("Backup berhasil diunduh!");
+}
+
+/* RESTORE */
+function restoreData(){
+    const input=document.createElement("input");
+    input.type="file";
+    input.accept="application/json";
+
+    input.onchange=e=>{
+        const file=e.target.files[0];
+        const reader=new FileReader();
+
+        reader.onload=()=>{
+            const data=JSON.parse(reader.result);
+
+            for(const key in data){
+                if(key==="trades"){
+                    trades=data.trades;
+                    localStorage.setItem("trades",JSON.stringify(trades));
+                } else {
+                    localStorage.setItem(key,data[key]);
+                }
+            }
+
+            alert("Restore berhasil! Halaman akan reload.");
+            location.reload();
+        };
+
+        reader.readAsText(file);
+    };
+
+    input.click();
+}
+
+/* EXPORT EXCEL (CSV) */
+function exportExcel(){
+    if(trades.length===0) return alert("Tidak ada data.");
+
+    let csv="Pair,P/L,Catatan\n";
+
+    trades.forEach(t=>{
+        csv+=`${t.pair},${t.pl},${t.note}\n`;
+    });
+
+    const blob=new Blob([csv],{type:"text/csv"});
+    const link=document.createElement("a");
+    link.href=URL.createObjectURL(blob);
+    link.download="trading_data.csv";
+    link.click();
+}
+
+/* EXPORT PDF */
+function exportPDF(){
+    const text = trades.map(t => 
+        `Pair: ${t.pair} | PL: ${t.pl} | Note: ${t.note}`
+    ).join("\n");
+
+    const blob=new Blob([text],{type:"application/pdf"});
+    const link=document.createElement("a");
+    link.href=URL.createObjectURL(blob);
+    link.download="trading_data.pdf";
+    link.click();
+}
+
+/* THEME SWITCH */
+function toggleTheme(){
+    const mode = localStorage.getItem("theme")==="light" ? "dark" : "light";
+
+    localStorage.setItem("theme",mode);
+
+    if(mode==="light"){
+        document.body.style.filter="invert(1) hue-rotate(180deg)";
+        alert("Light Mode Aktif");
+    } else {
+        document.body.style.filter="none";
+        alert("Dark Mode Aktif");
+    }
+}
+
+/* LOAD */
+userIdInput.value=localStorage.getItem("userId")||"";
+currencyInput.value=localStorage.getItem("currency")||"USD";
+modalInput.value=localStorage.getItem("modal")||"";
+headerTextInput.value=localStorage.getItem("headerText")||"𝐉𝐅𝐗_𝐑𝐄𝐀𝐋𝐓𝐑𝐀𝐃";
+headerFontInput.value=localStorage.getItem("headerFont")||"inherit";
+headerColorInput.value=localStorage.getItem("headerColor")||"#ffffff";
+headerBgColorInput.value=localStorage.getItem("headerBgColor")||"#171717";
+
+updateDashboard();
+updateHeader();
+renderTable();
+renderChart();
+
+</script>
+</body>
+</html>
